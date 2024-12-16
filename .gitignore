@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/MySQLConnectionPool/libcrypto-3-x64.dll
+/MySQLConnectionPool/libssl-3-x64.dll
+/MySQLConnectionPool/libmysql.dll
