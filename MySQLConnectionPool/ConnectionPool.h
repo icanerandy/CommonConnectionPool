@@ -46,5 +46,5 @@ private:
 	std::mutex _queueMutex;		// 维护mysql连接队列的线程安全互斥锁
 
 	atomic_int _connectionCnt;	// 记录连接所创建的connection的总数量
-	std::condition_variable _cv;	// 设置条件变量，用于连接生产者和消费者线程的通信
+	std::condition_variable _cv;// 设置条件变量，用于连接生产者和消费者线程的通信
 };
