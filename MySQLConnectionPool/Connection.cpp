@@ -35,6 +35,7 @@ bool Connection::update(string sql)
 	if (mysql_query(_conn, sql.c_str()))
 	{
 		LOG("更新失败:" + sql);
+		std::cout << mysql_error(_conn) << std::endl;
 		return false;
 	}
 	return true;
@@ -49,4 +50,16 @@ MYSQL_RES* Connection::query(string sql)
 		return nullptr;
 	}
 	return mysql_use_result(_conn);
+}
+
+// 刷新连接的闲置时间起始点
+void Connection::refreshAliveTime()
+{
+	_aliveTime = clock();
+}
+
+// 返回闲置时间
+clock_t Connection::getAliveTime() const
+{
+	return clock() - _aliveTime;
 }

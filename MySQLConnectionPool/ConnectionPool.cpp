@@ -107,6 +107,7 @@ bool ConnectionPool::loadConfigFile()
 	return true;
 }
 
+// 扫描器，定时扫描超过maxIdleTime时间的闲置连接，进行对多余连接的回收
 void ConnectionPool::scannerConnectionTask()
 {
 	for (;;)
@@ -149,7 +150,7 @@ void ConnectionPool::produceConnectionTask()
 		{
 			Connection* conn = new Connection();
 			conn->connect(_ip, _port, _username, _password, _dbname);
-			conn->refreshAliveTime();	// 刷新空闲时间起始点
+			conn->refreshAliveTime();	// 刷新闲置时间起始点
 			_connectionQueue.push(conn);
 			_connectionCnt++;
 		}
@@ -173,7 +174,7 @@ ConnectionPool::ConnectionPool()
 	{
 		Connection* conn = new Connection();
 		conn->connect(_ip, _port, _username, _password, _dbname);
-		conn->refreshAliveTime();	// 刷新空闲时间起始点
+		conn->refreshAliveTime();	// 刷新空闲置时间起始点
 		_connectionQueue.push(conn);
 		_connectionCnt++;
 	}
@@ -181,7 +182,7 @@ ConnectionPool::ConnectionPool()
 	// 启动一个新的线程，作为连接的生产者 Linux下thread底层调用的就是pthread
 	std::thread produceTh(std::bind(&ConnectionPool::produceConnectionTask, this));
 	produceTh.detach();	// 设置为守护线程（分离）
-	// 启动一个新的定时线程，扫描超过maxIdleTime时间的空闲连接，进行对多余连接的回收
+	// 启动一个新的定时线程，扫描超过maxIdleTime时间的闲置连接，进行对多余连接的回收
 	std::thread scannerTh(std::bind(&ConnectionPool::scannerConnectionTask, this));
 	scannerTh.detach();	// 设置为守护线程（分离）
 }

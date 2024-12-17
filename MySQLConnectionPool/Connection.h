@@ -30,19 +30,13 @@ public:
 	// 查询操作 select
 	MYSQL_RES* query(string sql);
 
-	// 刷新连接的空闲时间起始点
-	void refreshAliveTime()
-	{
-		_aliveTime = clock();
-	}
+	// 刷新连接的闲置时间起始点
+	void refreshAliveTime();
 
-	// 返回空闲时间
-	clock_t getAliveTime() const
-	{
-		return clock() - _aliveTime;
-	}
+	// 返回闲置时间
+	clock_t getAliveTime() const;
 
 private:
 	MYSQL* _conn;	// 表示和MySQL Server的一条连接
-	clock_t _aliveTime;	// 记录空闲时间起始点
+	clock_t _aliveTime;	// 记录闲置时间起始点
 };

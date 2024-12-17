@@ -31,7 +31,7 @@ private:
 	// 从配置文件中加载配置项
 	bool loadConfigFile();
 
-	// 扫描超过maxIdleTime时间的空闲连接，进行对多余连接的回收
+	// 扫描超过maxIdleTime时间的闲置连接，进行对多余连接的回收
 	void scannerConnectionTask();
 
 private:
@@ -42,7 +42,7 @@ private:
 	std::string _dbname;		// 连接的数据库名称
 	size_t _initSize;			// 连接池的初始连接量
 	size_t _maxSize;			// 连接池的最大连接量
-	size_t _maxIdleTime;		// 连接池最大空闲时间
+	size_t _maxIdleTime;		// 连接池最大闲置时间
 	size_t _connectionTimeout;	// 连接池获取连接的超时时间
 
 	std::queue<Connection*> _connectionQueue;	// 存储mysql连接的队列
