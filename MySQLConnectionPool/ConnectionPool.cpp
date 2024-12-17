@@ -25,9 +25,10 @@ std::shared_ptr<Connection> ConnectionPool::getConnection()
 	所以这里需要自定义shared_ptr的释放资源方式，把connection直接归还到queue当中
 	*/
 	std::shared_ptr<Connection> sp(_connectionQueue.front(),
-									[&] (Connection* Conn) {
+									[&] (Connection* conn) {
 										std::unique_lock<std::mutex> lock(_queueMutex);	// 这里是在服务器应用线程中调用的，所以一定要考虑队列的线程安全操作
-										_connectionQueue.push(Conn);
+										conn->refreshAliveTime();	// 刷新空闲时间起始点
+										_connectionQueue.push(conn);
 									});
 	_connectionQueue.pop();
 	if (_connectionQueue.empty())
@@ -106,6 +107,32 @@ bool ConnectionPool::loadConfigFile()
 	return true;
 }
 
+void ConnectionPool::scannerConnectionTask()
+{
+	for (;;)
+	{
+		// 通过sleep模拟定时效果
+		std::this_thread::sleep_for(std::chrono::seconds(_maxIdleTime));
+
+		// 扫描整个队列，释放多余的连接
+		std::unique_lock<std::mutex> lock(_queueMutex);
+		while (_connectionCnt > _initSize)
+		{
+			Connection* conn = _connectionQueue.front();
+			if (conn->getAliveTime() >= _maxIdleTime * 1000)
+			{
+				_connectionQueue.pop();
+				_connectionCnt--;
+				delete conn;	// 调用~Connection()释放连接
+			}
+			else
+			{
+				break;	// 队头的连接没有超过_maxIdleTime，其它连接肯定也没有（队列是队头先进）
+			}
+		}
+	}
+}
+
 // 运行在独立线程中，专门负责生产新的连接
 void ConnectionPool::produceConnectionTask()
 {
@@ -122,6 +149,7 @@ void ConnectionPool::produceConnectionTask()
 		{
 			Connection* conn = new Connection();
 			conn->connect(_ip, _port, _username, _password, _dbname);
+			conn->refreshAliveTime();	// 刷新空闲时间起始点
 			_connectionQueue.push(conn);
 			_connectionCnt++;
 		}
@@ -145,10 +173,15 @@ ConnectionPool::ConnectionPool()
 	{
 		Connection* conn = new Connection();
 		conn->connect(_ip, _port, _username, _password, _dbname);
+		conn->refreshAliveTime();	// 刷新空闲时间起始点
 		_connectionQueue.push(conn);
 		_connectionCnt++;
 	}
 
 	// 启动一个新的线程，作为连接的生产者 Linux下thread底层调用的就是pthread
 	std::thread produceTh(std::bind(&ConnectionPool::produceConnectionTask, this));
+	produceTh.detach();	// 设置为守护线程（分离）
+	// 启动一个新的定时线程，扫描超过maxIdleTime时间的空闲连接，进行对多余连接的回收
+	std::thread scannerTh(std::bind(&ConnectionPool::scannerConnectionTask, this));
+	scannerTh.detach();	// 设置为守护线程（分离）
 }

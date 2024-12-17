@@ -31,6 +31,9 @@ private:
 	// 从配置文件中加载配置项
 	bool loadConfigFile();
 
+	// 扫描超过maxIdleTime时间的空闲连接，进行对多余连接的回收
+	void scannerConnectionTask();
+
 private:
 	std::string _ip;			// mysql的ip地址
 	unsigned short _port;		// mysql的端口号 3306
